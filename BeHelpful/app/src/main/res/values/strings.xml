@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">BeHelpful</string>
+    <string name="fab_menu_id1_Emergency">Служба спасения</string>
+    <string name="fab_menu_id2_Accident">Авария / ДТП</string>
+    <string name="fab_menu_id3_Evacuation">Эвакуация</string>
+    <string name="fab_menu_id4_Repair">Мелкий ремонт</string>
+    <string name="fab_menu_id5_ReadyToHelp">Готов помочь</string>
+
 </resources>

@@ -3,87 +3,149 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:visibility="visible"
-    android:background="@color/simplyWhite"
-
+    android:visibility="invisible"
     android:id="@+id/fab_menu"
     android:focusable="false">
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/addMarkId1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:src="@mipmap/ic_plus"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"/>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/addMarkId2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginTop="24dp"
-        android:src="@mipmap/ic_plus"
-        android:layout_above="@+id/addMarkId1"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        app:fabSize="mini"/>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/simplyWhite"
+        android:alpha="0.8" />
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/addMarkId3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginTop="24dp"
-        android:src="@mipmap/ic_plus"
-        android:layout_above="@+id/addMarkId2"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        app:fabSize="mini"/>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentBottom="false">
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/addMarkId4"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginTop="24dp"
-        android:src="@mipmap/ic_plus"
-        android:layout_above="@+id/addMarkId3"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        app:fabSize="mini"/>
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addMarkId1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:src="@mipmap/ic_emergency"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            app:backgroundTint="?attr/colorAccent"/>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/addMarkId5"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginTop="24dp"
-        android:src="@mipmap/ic_plus"
-        android:layout_above="@+id/addMarkId4"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        app:fabSize="mini"/>
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addMarkId2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginTop="16dp"
+            android:src="@mipmap/ic_accident"
+            android:layout_above="@+id/addMarkId1"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            app:fabSize="mini"
+            app:backgroundTint="?attr/colorPrimary" />
 
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addMarkId3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginTop="24dp"
+            android:src="@mipmap/ic_evacuation"
+            android:layout_above="@+id/addMarkId2"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            app:fabSize="mini"
+            app:backgroundTint="?attr/colorPrimary"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New Text"
-        android:id="@+id/textView"
-        android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@+id/addMarkId1"
-        android:layout_toStartOf="@+id/addMarkId1" />
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addMarkId4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginTop="24dp"
+            android:src="@mipmap/ic_repair"
+            android:layout_above="@+id/addMarkId3"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            app:fabSize="mini"
+            app:backgroundTint="?attr/colorPrimary"/>
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/addMarkId5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginTop="24dp"
+            android:src="@mipmap/ic_ready_to_help"
+            android:layout_above="@+id/addMarkId4"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            app:fabSize="mini"
+            app:backgroundTint="?attr/colorPrimary"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/fab_menu_id1_Emergency"
+            android:layout_marginBottom="16dp"
+            android:layout_alignBottom="@+id/addMarkId1"
+            android:layout_toLeftOf="@+id/addMarkId1"
+            android:layout_toStartOf="@+id/addMarkId1"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="24sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="24sp"
+            android:textColor="?attr/colorPrimary"
+            android:text="@string/fab_menu_id2_Accident"
+            android:layout_alignBottom="@+id/addMarkId2"
+            android:layout_toLeftOf="@+id/addMarkId1"
+            android:layout_toStartOf="@+id/addMarkId1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="24sp"
+            android:textColor="?attr/colorPrimary"
+            android:text="@string/fab_menu_id3_Evacuation"
+            android:layout_above="@+id/addMarkId2"
+            android:layout_toLeftOf="@+id/addMarkId1"
+            android:layout_toStartOf="@+id/addMarkId1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="24sp"
+            android:textColor="?attr/colorPrimary"
+            android:text="@string/fab_menu_id4_Repair"
+            android:layout_above="@+id/addMarkId3"
+            android:layout_toLeftOf="@+id/addMarkId1"
+            android:layout_toStartOf="@+id/addMarkId1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="24sp"
+            android:textColor="?attr/colorPrimary"
+            android:text="@string/fab_menu_id5_ReadyToHelp"
+            android:layout_alignBottom="@+id/addMarkId5"
+            android:layout_toLeftOf="@+id/addMarkId1"
+            android:layout_toStartOf="@+id/addMarkId1" />
+
+    </RelativeLayout>
 </RelativeLayout>
 

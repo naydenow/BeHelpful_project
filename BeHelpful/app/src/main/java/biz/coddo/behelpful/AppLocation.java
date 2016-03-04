@@ -12,7 +12,7 @@ public class AppLocation {
     private AppLocation() {
     }
 
-    AppLocation(Context context) {
+    public AppLocation(Context context) {
         // Get LocationManager object from System Service LOCATION_SERVICE
         locationManager = (LocationManager)
                 context.getSystemService(Context.LOCATION_SERVICE);
@@ -22,7 +22,7 @@ public class AppLocation {
         String provider = locationManager.getBestProvider(criteria, true);
     }
 
-    Location getMyLocation() {
+    public Location getMyLocation() {
         // Get Current Location
         return locationManager.getLastKnownLocation(locationManager.NETWORK_PROVIDER);
 

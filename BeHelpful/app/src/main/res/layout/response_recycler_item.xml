@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:orientation="vertical"
+    android:padding="16dp" >
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User User Name"
+        android:id="@+id/response_user_name"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:text="Phone +79998881234"
+        android:id="@+id/response_phone_number"
+        android:layout_below="@+id/response_user_name"
+        android:layout_alignLeft="@+id/response_user_name"
+        android:layout_alignStart="@+id/response_user_name" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2016-03-02"
+        android:textSize="12sp"
+        android:id="@+id/response_date"
+        android:layout_alignBaseline="@+id/response_user_name"
+        android:layout_alignBottom="@+id/response_user_name"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="22:20"
+        android:textSize="12sp"
+        android:id="@+id/response_time"
+        android:layout_below="@+id/response_date"
+        android:layout_alignRight="@+id/response_date"
+        android:layout_alignEnd="@+id/response_date" />
+</RelativeLayout>

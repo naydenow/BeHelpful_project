@@ -1,6 +1,5 @@
 package biz.coddo.behelpful;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -14,8 +13,9 @@ import android.util.Log;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
-import biz.coddo.behelpful.ServerApi.MarkerUpdateService;
-import biz.coddo.behelpful.dialogs.GMapNotInstalledDialog;
+import biz.coddo.behelpful.AppPreference.DefaultPreference;
+import biz.coddo.behelpful.ServerApi.DTOUpdateService;
+import biz.coddo.behelpful.Dialogs.GMapNotInstalledDialog;
 
 public class StartActivity extends AppCompatActivity {
     private static final String TAG = "startActivity";
@@ -29,6 +29,9 @@ public class StartActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
 
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = sharedPreferences.edit();
+
         // Check GooglePlayServices available
         int gooPlayServicesAvailable = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getBaseContext());
         if (gooPlayServicesAvailable == ConnectionResult.SUCCESS) {
@@ -38,6 +41,9 @@ public class StartActivity extends AppCompatActivity {
             Log.i(TAG, "gooPlayServicesAvailable False, Show ErrorDialog");
         } else {
             Log.i(TAG, "gooPlayServicesAvailable False");
+            //TODO change it when App can works without PlayServices
+            editor.putBoolean(DefaultPreference.PLAY_SERVICES_AVAILABLE_BOOLEAN.getName(), false);
+            editor.commit();
             finish();
         }
 
@@ -50,13 +56,14 @@ public class StartActivity extends AppCompatActivity {
             Log.e(TAG, "GMapsInstalled False");
             GMapNotInstalledDialog dialogGoogleMapsNotInstalled = new GMapNotInstalledDialog();
             dialogGoogleMapsNotInstalled.show(getFragmentManager(), "dialogGoogleMapsNotInstalled");
+            editor.putBoolean(DefaultPreference.GMAP_INSTALLED_BOOLEAN.getName(), false);
             finish();
         }
 
         //Check fistTimeLoadingApp
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        editor = sharedPreferences.edit();
-        boolean firstTimeLoadingApp = sharedPreferences.getBoolean("firstTimeLoadingApp", true);
+        boolean firstTimeLoadingApp = sharedPreferences
+                .getBoolean(DefaultPreference.FIRST_TIME_LOADING_BOOLEAN.getName(),
+                        DefaultPreference.FIRST_TIME_LOADING_BOOLEAN.isBooleanValue());
         if (firstTimeLoadingApp) {
             regFragment = new RegFragment();
             regConfirmFragment = new RegConfirmFragment();
@@ -66,25 +73,33 @@ public class StartActivity extends AppCompatActivity {
             fragmentTransaction.commit();
 
         } else {
-            token = sharedPreferences.getString("userToken", null);
-            userId = sharedPreferences.getInt("userId", 0);
-            startService(new Intent(this, MarkerUpdateService.class));
-            Intent intent = new Intent(StartActivity.this, MainActivity.class);
-            intent.putExtra("userId", userId);
-            intent.putExtra("userToken", token);
-            startActivity(intent);
+            startDTOServices();
+            startMainActivity();
         }
     }
 
-    public static void registrationComplit(Context mContext) {
-        editor.putBoolean("firstTimeLoadingApp", false);
-        editor.putInt("userId", userId);
-        editor.putString("userToken", token);
+    public void registrationComplete() {
+        editor.putBoolean(DefaultPreference.FIRST_TIME_LOADING_BOOLEAN.getName(), false);
+        editor.putInt(DefaultPreference.USER_ID_INT.getName(), userId);
+        editor.putString(DefaultPreference.USER_TOKEN_STRING.getName(), token);
         editor.commit();
-        mContext.startService(new Intent(mContext, MarkerUpdateService.class));
-        Intent intent = new Intent(mContext, MainActivity.class);
-        intent.putExtra("userId", userId);
-        intent.putExtra("userToken", token);
-        mContext.startActivity(intent);
+        startDTOServices();
+        startMainActivity();
+    }
+
+    private void startMainActivity() {
+        startService(new Intent(this, DTOUpdateService.class));
+        Intent intent = new Intent(StartActivity.this, MainActivity.class);
+        startActivity(intent);
+    }
+
+    private void startDTOServices() {
+        startService(new Intent(this, DTOUpdateService.class));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "onDestroy");
     }
 }

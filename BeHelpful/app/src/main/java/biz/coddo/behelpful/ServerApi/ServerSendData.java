@@ -62,9 +62,9 @@ public class ServerSendData {
         return mSendRegData;
     }
 
-    public static String sendRegKey(String key, String phone) {
+    public static String[] sendConfirmKey(String key, String phone) {
 
-        String mSendRegKey = null;
+        String[] mSendRegKey = new String[2];
         try {
             URL url = new URL(SERVER + "login/check?phone=" + phone + "&key=" + key);
 
@@ -77,8 +77,17 @@ public class ServerSendData {
                 Log.i(TAG, "HTTP connection OK");
                 InputStream in = httpConnection.getInputStream();
                 BufferedReader r = new BufferedReader(new InputStreamReader(in));
-
-                mSendRegKey = r.readLine();
+                String aString = r.readLine();
+                JSONObject object;
+                try {
+                    object = new JSONObject(aString);
+                    if (object.getString("responce").equals("true")) {
+                        mSendRegKey[0] = object.getString("id");
+                        mSendRegKey[1] = object.getString("token");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
 
 
@@ -264,7 +273,7 @@ public class ServerSendData {
                 try {
                     JSONObject jsonObject = new JSONObject(r.readLine());
                     if (jsonObject.getString("responce").equals("true")) {
-                        JSONArray jsonArray = jsonObject.getJSONArray("data");
+                        JSONArray jsonArray = jsonObject.getJSONArray("result");
                         mResponseList = new ArrayList<>(jsonArray.length());
                         for (int i = 0; i < jsonArray.length(); i++) {
                             JSONObject jObject = jsonArray.getJSONObject(i);

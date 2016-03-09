@@ -1,31 +1,43 @@
 package biz.coddo.behelpful;
 
+import android.app.DialogFragment;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.ContextMenu;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 
 import biz.coddo.behelpful.Adapter.ResponseActivityAdapter;
-import biz.coddo.behelpful.ServerApi.MarkerUpdateService;
+import biz.coddo.behelpful.ServerApi.DTOUpdateService;
+import biz.coddo.behelpful.Dialogs.ResponseClickDialog;
+import biz.coddo.behelpful.Dialogs.ResponseDeleteAllDialog;
 
 public class ResponseActivity extends AppCompatActivity {
 
+    private static final String TAG = "ResponseActivity";
     private RecyclerView mRecyclerView;
     private ResponseActivityAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
     private DBConnector dbConnector;
-    private static final int CM_DELETE_ID = 0;
-    private static final int CM_DELETE_ALL = 1;
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_response);
+
+        initToolbar();
+
+        initRecyclerViewDBConnectorAndSetAdapter();
+
+    }
+
+    private void initRecyclerViewDBConnectorAndSetAdapter() {
 
         mRecyclerView = (RecyclerView) findViewById(R.id.response_recycler_view);
 
@@ -35,61 +47,89 @@ public class ResponseActivity extends AppCompatActivity {
         dbConnector = new DBConnector(this);
 
         mAdapter = new ResponseActivityAdapter(dbConnector.getAllResponses());
-        MarkerUpdateService.setIsChangeResponseFalse();
-        mRecyclerView.setAdapter(mAdapter);
+        DTOUpdateService.setIsChangeResponseFalse();
 
+        mRecyclerView.setAdapter(mAdapter);
+        mAdapter.setOnItemClickListener(getOnItemClickListener());
+    }
+
+    private ResponseActivityAdapter.OnItemClickListener getOnItemClickListener(){
+        return new ResponseActivityAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View itemView, int position) {
+                Log.i(TAG, "onResponseClick");
+                Bundle args = new Bundle();
+                args.putInt("id", position);
+                DialogFragment responseClickDialog = new ResponseClickDialog();
+                responseClickDialog.setArguments(args);
+                responseClickDialog.show(getFragmentManager(), "ResponseClickDialog");
+            }
+        };
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MarkerUpdateService.setResponseActivityId(this);
+        DTOUpdateService.setResponseActivityId(this);
         updateResponseList();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        MarkerUpdateService.setResponseActivityId(null);
-        if (MarkerUpdateService.isChangeResponse())
-            updateResponseList();
+        DTOUpdateService.setResponseActivityId(null);
     }
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        super.onCreateContextMenu(menu, v, menuInfo);
-        menu.add(0, CM_DELETE_ID, 0, R.string.delete_response);
-        menu.add(0, CM_DELETE_ALL, 0, R.string.delete_all_response);
-    }
-
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case CM_DELETE_ID:
-                AdapterView.AdapterContextMenuInfo acmi = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-                deleteResponseById(acmi.position);
-                break;
-            case CM_DELETE_ALL:
-                deleteAllResponse();
-                break;
-        }
-        return super.onContextItemSelected(item);
-    }
-
-    private void deleteAllResponse() {
+    public void deleteAllResponse() {
         dbConnector.deleteAllResponses();
         updateResponseList();
     }
 
-    private void deleteResponseById(int position) {
+    public void deleteResponseById(int position) {
         dbConnector.deleteResponse(mAdapter.getResponseArrayList().get(position).getDbID());
         mAdapter.delResponseById(position);
-        mAdapter.notifyDataSetChanged();
+        mAdapter.notifyItemRemoved(position);
     }
 
     public void updateResponseList() {
         mAdapter.setResponseArrayList(dbConnector.getAllResponses());
         mAdapter.notifyDataSetChanged();
-        MarkerUpdateService.setIsChangeResponseFalse();
+        DTOUpdateService.setIsChangeResponseFalse();
+    }
+
+    public ResponseActivityAdapter getAdapter() {
+        return mAdapter;
+    }
+
+    private void initToolbar() {
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+
+        if (toolbar != null) {
+            toolbar.setTitle(R.string.responses);
+            setSupportActionBar(toolbar);
+            getSupportActionBar().setHomeButtonEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_response, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                break;
+            case R.id.menu_responses_del_all:
+                DialogFragment responseDeleteAll = new ResponseDeleteAllDialog();
+                responseDeleteAll.show(getFragmentManager(), "ResponseDeleteAllDialog");
+                break;
+        }
+        return true;
     }
 }

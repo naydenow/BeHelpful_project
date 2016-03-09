@@ -1,15 +1,15 @@
 package biz.coddo.behelpful;
 
-import android.app.ActionBar;
 import android.app.DialogFragment;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
@@ -20,24 +20,22 @@ import android.support.v4.app.FragmentTransaction;
 import java.util.concurrent.ExecutionException;
 
 import biz.coddo.behelpful.AppMap.AppMap;
-import biz.coddo.behelpful.AppMap.AppMapGoogleMap;
-import biz.coddo.behelpful.ServerApi.MarkerUpdateService;
+import biz.coddo.behelpful.AppPreference.DefaultPreference;
+import biz.coddo.behelpful.ServerApi.DTOUpdateService;
 import biz.coddo.behelpful.ServerApi.ServerAsyncTask;
-import biz.coddo.behelpful.dialogs.MarkerClickDialog;
+import biz.coddo.behelpful.Dialogs.MarkerClickDialog;
 
 public class MainActivity extends AppCompatActivity implements AppMap.onMarkerClickListener {
 
     private static final String TAG = "MainActivity";
-    public static String PACKAGE_NAME;
+    private static SharedPreferences sharedPreferences;
     public static int userId;
     private static String token;
-    public static AppLocation appLocation;
     private AppMap appMap;
     private RelativeLayout fabMenu;
     private Animation rotate_forward, rotate_backward;
     private boolean isOpenFabMenu = false;
     private boolean isAddFab = true;
-    private boolean isNewResponse = false;
     private FloatingActionButton fab;
     private FloatingActionButton myLocButton;
     private ChangeListener changeListener;
@@ -48,23 +46,26 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Intent intent = getIntent();
-        token = intent.getStringExtra("userToken");
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        token = sharedPreferences.getString(DefaultPreference.USER_TOKEN_STRING.getName(),
+                DefaultPreference.USER_TOKEN_STRING.getStringValue());
         Log.i(TAG, token);
-        userId = intent.getIntExtra("userId", 0);
+        userId = sharedPreferences.getInt(DefaultPreference.USER_ID_INT.getName(),
+                DefaultPreference.USER_ID_INT.getIntValue());
         Log.i(TAG, "" + userId);
 
-        PACKAGE_NAME = getApplicationContext().getPackageName();
-
-        appLocation = new AppLocation(this);
 
         initToolbar();
 
-        //Initialez map fragment
-        initGoogleMapFragment();
+        initFabMenu();
 
+        rotate_forward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_main_rotate_forward);
+        rotate_backward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_main_rotate_backward);
+        initFab();
 
-        //Initialez myLocButton
+        initMapFragment();
+
         myLocButton = (FloatingActionButton) findViewById(R.id.myLocButton);
         myLocButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -78,25 +79,20 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
     @Override
     protected void onPause() {
         super.onPause();
-        MarkerUpdateService.setUpgradePeriod(3);
+        int i = sharedPreferences.getInt(DefaultPreference.MARKER_UPGRADE_PERIOD_ONPAUSE_MIN_INT.getName(),
+                DefaultPreference.MARKER_UPGRADE_PERIOD_ONPAUSE_MIN_INT.getIntValue());
+        DTOUpdateService.setUpgradePeriod(i);
         changeListener.stopSelf();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        MarkerUpdateService.setUpgradePeriod(1);
-
+        int i = sharedPreferences.getInt(DefaultPreference.MARKER_UPGRADE_PERIOD_ONRESUME_MIN_INT.getName(),
+                DefaultPreference.MARKER_UPGRADE_PERIOD_ONRESUME_MIN_INT.getIntValue());
+        DTOUpdateService.setUpgradePeriod(i);
         changeListener = new ChangeListener(this);
         changeListener.start();
-
-        //Initialez fabMenu
-        initFabMenu();
-
-        //Initialez fab
-        rotate_forward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_main_rotate_forward);
-        rotate_backward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_main_rotate_backward);
-        initFab();
 
     }
 
@@ -110,21 +106,31 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        MarkerUpdateService.setUpgradePeriod(15);
+        int i = sharedPreferences.getInt(DefaultPreference.MARKER_UPGRADE_PERIOD_BACKGROUND_MIN_INT.getName(),
+                DefaultPreference.MARKER_UPGRADE_PERIOD_BACKGROUND_MIN_INT.getIntValue());
+        DTOUpdateService.setUpgradePeriod(i);
     }
 
-    private void initGoogleMapFragment() {
-        appMap = new AppMapGoogleMap();
+    private void initMapFragment() {
+        int i = sharedPreferences.getInt(DefaultPreference.APP_MAP_INT.getName(),
+                DefaultPreference.APP_MAP_INT.getIntValue());
+        appMap = AppMap.getMap(i);
+        int container = AppMap.getAppMapContainer(i);
         Log.i(TAG, "Fragment Transaction");
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.add(R.id.content_main, appMap);
+        ft.add(container, appMap);
         ft.commit();
 
     }
 
     private void initFab() {
         fab = (FloatingActionButton) findViewById(R.id.fab);
-        if (MarkerUpdateService.isMyMarker()) {
+        setFabListener();
+
+    }
+
+    private void setFabListener(){
+        if (DTOUpdateService.isMyMarker()) {
             Log.i(TAG, "isMyMarker true");
             if (isAddFab) fab.startAnimation(rotate_forward);
             fab.setOnClickListener(fabDeleteMark());
@@ -133,7 +139,6 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
             fab.setOnClickListener(fabAddMark());
             if (!isAddFab) fab.startAnimation(rotate_backward);
         }
-
     }
 
     private View.OnClickListener fabDeleteMark() {
@@ -195,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
                 try {
                     Log.i(TAG, "AddMarker get" + addMarker.get());
                     if (addMarker.get()) {
-                        Intent intent = new Intent(MainActivity.this, MarkerUpdateService.class);
+                        Intent intent = new Intent(MainActivity.this, DTOUpdateService.class);
                         intent.putExtra("respondThread", 1);
                         startService(intent);
                     }
@@ -244,20 +249,32 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
         markerClickDialog.show(getFragmentManager(), "MarkerClickDialog");
     }
 
-    private void initToolbar(){
+    private void initToolbar() {
 
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle(R.string.app_name);
+        toolbar.inflateMenu(R.menu.main);
         toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                return false;
+                switch (item.getItemId()) {
+                    case R.id.menu_responses:
+                        startActivity(new Intent(MainActivity.this, ResponseActivity.class));
+                        break;
+                    case R.id.menu_settings:
+                        break;
+                    case R.id.menu_exit:
+                        finish();
+                        break;
+                }
+                return true;
             }
         });
-        toolbar.inflateMenu(R.menu.main);
+        if(DTOUpdateService.isChangeResponse()) setNewResponseIcon();
     }
-    private void setNewResponseIcon() {
 
+    private void setNewResponseIcon() {
+        toolbar.getMenu().findItem(R.id.menu_responses).setIcon(R.mipmap.ic_email_outline);
     }
 
     class ChangeListener extends Thread {
@@ -272,29 +289,38 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
         void stopSelf() {
             isStart = false;
         }
+
         @Override
         public void run() {
+            Log.i(TAG, "ChangeListener start");
             isStart = true;
             while (isStart) {
-                if (MarkerUpdateService.isChange) {
+                if (DTOUpdateService.isChangeMarkerMap) {
                     activity.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             appMap.addAllMarker();
-                            initFab();
+                            setFabListener();
+                            Log.i(TAG, "updateMap");
                         }
                     });
-                    MarkerUpdateService.isChange = false;
+                    DTOUpdateService.isChangeMarkerMap = false;
                 }
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (MarkerUpdateService.isChangeResponse() && !isNewResponse) {
-                    setNewResponseIcon();
+                if (DTOUpdateService.isChangeResponse()) {
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setNewResponseIcon();
+                        }
+                    });
                 }
             }
+            Log.i(TAG, "ChangeListener start");
             super.run();
         }
 

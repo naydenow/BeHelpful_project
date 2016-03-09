@@ -9,7 +9,7 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/stringName"
+        android:text="@string/name"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <TextView
@@ -19,7 +19,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/textView2"
-        android:text="@string/stringInputName"
+        android:text="@string/inputName"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <EditText
@@ -41,7 +41,7 @@
         android:layout_alignParentStart="true"
         android:layout_below="@+id/userName"
         android:paddingTop="32dp"
-        android:text="@string/stringPhoneNumber"
+        android:text="@string/phoneNumber"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <TextView
@@ -51,7 +51,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/textView3"
-        android:text="@string/stringPutYouPhoneNumber"
+        android:text="@string/putYouPhoneNumber"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <RelativeLayout

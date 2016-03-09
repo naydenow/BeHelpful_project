@@ -65,9 +65,10 @@
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
+        <activity android:name=".ResponseActivity" />
 
         <service
-            android:name=".ServerApi.MarkerUpdateService"
+            android:name=".ServerApi.DTOUpdateService"
             android:enabled="true"
             android:exported="true" >
         </service>

@@ -14,6 +14,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.util.concurrent.ExecutionException;
+
+import biz.coddo.behelpful.ServerApi.ServerAsyncTask;
 import biz.coddo.behelpful.ServerApi.ServerSendData;
 
 public class RegFragment extends Fragment {
@@ -45,43 +48,26 @@ public class RegFragment extends Fragment {
                         inputPhone.setTextColor(Color.BLACK);
                         Log.i(TAG, "Условия выполнены");
                         StartActivity.userPhone = userPhone.getText().toString();
-                        TaskSendData tsk = new TaskSendData();
+                        regButton.setClickable(false);
+                        AsyncTask<String, Void, Boolean> tsk = new ServerAsyncTask.SendRegistrationData();
                         tsk.execute(userName.getText().toString(), userPhone.getText().toString());
+                        try {
+                            if (tsk.get()) {
+                                FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
+                                fragmentTransaction.replace(R.id.activity_start_reg, StartActivity.regConfirmFragment);
+                                fragmentTransaction.commit();
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            regButton.setClickable(true);
+                        } catch (ExecutionException e) {
+                            e.printStackTrace();
+                            regButton.setClickable(true);
+                        }
                     }
                 }
             }
         });
         return v;
     }
-
-    private class TaskSendData extends AsyncTask<String, Void, Boolean> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            Log.i(TAG, "отправка на сервер");
-            regButton.setClickable(false);
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            return ServerSendData.sendRegData(params[0], params[1]);
-        }
-
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            Log.i(TAG, "ответ от сервера");
-            if (aBoolean) {
-                FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
-                fragmentTransaction.replace(R.id.activity_start_reg, StartActivity.regConfirmFragment);
-                fragmentTransaction.commit();
-            }
-            else {
-                regButton.setClickable(true);
-
-            }
-        }
-    }
-
 }

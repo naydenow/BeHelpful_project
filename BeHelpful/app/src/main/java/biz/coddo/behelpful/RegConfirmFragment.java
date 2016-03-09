@@ -10,10 +10,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.concurrent.ExecutionException;
 
-import biz.coddo.behelpful.ServerApi.ServerSendData;
+import biz.coddo.behelpful.ServerApi.ServerAsyncTask;
 
 public class RegConfirmFragment extends Fragment {
 
@@ -31,44 +30,27 @@ public class RegConfirmFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (confirmKey.getText().toString().length() == 4) {
-                    TaskSendData tsk = new TaskSendData();
+                    regButton.setClickable(false);
+                    AsyncTask<String, Void, String[]> tsk = new ServerAsyncTask.SendConfirmKey();
                     tsk.execute(confirmKey.getText().toString(), StartActivity.userPhone);
+                    try {
+                        String[] str = tsk.get();
+                        if (str[0] != null && str[1] != null){
+                            StartActivity.userId = Integer.parseInt(str[0]);
+                            Log.i(TAG, "id: " + StartActivity.userId);
+                            StartActivity.token = str[1];
+                            Log.i(TAG, "token: " + StartActivity.token);
+                            StartActivity activity = (StartActivity) getActivity();
+                            activity.registrationComplete();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
         return v;
     }
-
-    private class TaskSendData extends AsyncTask<String, Void, String> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            regButton.setClickable(false);
-        }
-
-        @Override
-        protected String doInBackground(String... params) {
-            return ServerSendData.sendRegKey(params[0], params[1]);
-        }
-
-        @Override
-        protected void onPostExecute(String aString) {
-            super.onPostExecute(aString);
-            JSONObject object = null;
-            try {
-                object = new JSONObject(aString);
-                if (object.getString("responce").equals("true")) {
-                    StartActivity.userId = object.getInt("id");
-                    Log.i(TAG, "id: " + StartActivity.userId);
-                    StartActivity.token = object.getString("token");
-                    Log.i(TAG, "token: " + StartActivity.token);
-                    StartActivity.registrationComplit(getContext());
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 }

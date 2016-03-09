@@ -1,7 +1,6 @@
 package biz.coddo.behelpful.AppMap;
 
 
-import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,11 +24,11 @@ import java.util.Map;
 import biz.coddo.behelpful.DTO.MarkerDTO;
 import biz.coddo.behelpful.MainActivity;
 import biz.coddo.behelpful.R;
-import biz.coddo.behelpful.ServerApi.MarkerUpdateService;
+import biz.coddo.behelpful.ServerApi.DTOUpdateService;
 
 public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
-    private static Map<Integer, Marker> googleMapMarkerMap = new HashMap<>();
+    private Map<Integer, Marker> googleMapMarkerMap = new HashMap<>();
     private final String TAG = "AppMapGoogleMap";
     private GoogleMap mMap;
     private SupportMapFragment mapFragment;
@@ -47,11 +46,6 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
         return fragmentView;
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        if (mapFragment != null) mapFragment.onAttach(context);
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -62,8 +56,8 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
         mMap.setOnMarkerClickListener(this);
         mMap.getUiSettings().setMapToolbarEnabled(false);
         setCameraOnMyLocation();
-        if (!MarkerUpdateService.getMarkerHashMap().isEmpty() && mMap != null)
-            for (MarkerDTO marker : MarkerUpdateService.getMarkerHashMap().values()) {
+        if (!DTOUpdateService.getMarkerHashMap().isEmpty() && mMap != null)
+            for (MarkerDTO marker : DTOUpdateService.getMarkerHashMap().values()) {
                 addMark(marker);
             }
     }
@@ -75,9 +69,12 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
     }
 
     public void setCameraOnMyLocation() {
-        Location location = MainActivity.appLocation.getMyLocation();
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+        Location location = DTOUpdateService.appLocation.getMyLocation();
+        if (location != null) {
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            if (mMap != null) mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+        }
+        else Log.i(TAG, "Location is null");
     }
 
     public void removeMark(int userId) {
@@ -88,11 +85,12 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
     }
 
     public void addMark(MarkerDTO marker) {
+        Log.i(TAG, "addMark");
         int key = marker.userId;
         if (!googleMapMarkerMap.containsKey(key)) {
             Marker mMarker = mMap.addMarker(new MarkerOptions()
                     .position(new LatLng(marker.lat, marker.lng))
-                    .anchor((float) 0.5, (float) 0.5)
+                    .anchor((float) 1, (float) 0.5)
                     .icon(BitmapDescriptorFactory.fromResource(setIconByID(marker.markerType)))
                     .snippet("" + key)
                     .visible(true));
@@ -102,7 +100,7 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
 
     @Override
     public void addAllMarker() {
-        HashMap<Integer, MarkerDTO> hashMap = MarkerUpdateService.getMarkerHashMap();
+        HashMap<Integer, MarkerDTO> hashMap = DTOUpdateService.getMarkerHashMap();
         if (mMap != null) {
             if (!googleMapMarkerMap.isEmpty()) {
                 Iterator<Map.Entry<Integer, Marker>> it = googleMapMarkerMap.entrySet().iterator();
@@ -114,7 +112,7 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
                     }
                 }
             }
-            for (MarkerDTO marker : MarkerUpdateService.getMarkerHashMap().values())
+            for (MarkerDTO marker : DTOUpdateService.getMarkerHashMap().values())
                 addMark(marker);
         }
     }

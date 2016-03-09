@@ -14,6 +14,16 @@ import biz.coddo.behelpful.R;
 public class ResponseActivityAdapter extends RecyclerView.Adapter<ResponseActivityAdapter.ViewHolder> {
 
     private ArrayList<ResponseDTO> responseArrayList;
+    private String mNumber, mUser;
+    public static OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(View itemView, int position);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        ResponseActivityAdapter.listener = listener;
+    }
 
     public ResponseActivityAdapter(ArrayList<ResponseDTO> responseArrayList) {
         this.responseArrayList = responseArrayList;
@@ -23,16 +33,21 @@ public class ResponseActivityAdapter extends RecyclerView.Adapter<ResponseActivi
     public ResponseActivityAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.response_recycler_item, parent, false);
+        mUser = parent.getContext().getResources().getString(R.string.user);
+        mNumber = parent.getContext().getResources().getString(R.string.phone_number);
         return new ViewHolder(v);
     }
+
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         ResponseDTO response = responseArrayList.get(position);
-        holder.userName.setText(R.string.user + response.getUserName());
-        holder.userPhone.setText(R.string.phone_number + response.getUserPhone());
+        String mUserName = mUser + " " + response.getUserName();
+        holder.userName.setText(mUserName);
+        String mUserPhone = mNumber + " +" + response.getUserPhone();
+        holder.userPhone.setText(mUserPhone);
         String[] date = response.getDate().split(" ");
         holder.date.setText(date[0]);
-        holder.time.setText(date[1].substring(0, date[1].length() - 2));
+        holder.time.setText(date[1].substring(0, date[1].length() - 3));
 
     }
 
@@ -63,7 +78,14 @@ public class ResponseActivityAdapter extends RecyclerView.Adapter<ResponseActivi
             userPhone = (TextView) v.findViewById(R.id.response_phone_number);
             date = (TextView) v.findViewById(R.id.response_date);
             time = (TextView) v.findViewById(R.id.response_time);
-        }
 
+            v.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (ResponseActivityAdapter.listener != null)
+                        ResponseActivityAdapter.listener.onItemClick(itemView, getLayoutPosition());
+                }
+            });
+        }
     }
 }

@@ -13,28 +13,31 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import biz.coddo.behelpful.AppLocation;
+import biz.coddo.behelpful.AppLocation.AppLocation;
+import biz.coddo.behelpful.AppPreference.DefaultPreference;
 import biz.coddo.behelpful.DTO.MarkerDTO;
 import biz.coddo.behelpful.DBConnector;
 import biz.coddo.behelpful.DTO.ResponseDTO;
-import biz.coddo.behelpful.MainActivity;
 import biz.coddo.behelpful.ResponseActivity;
 
-public class MarkerUpdateService extends Service {
+public class DTOUpdateService extends Service {
 
-    private static final String TAG = "MarkerUpdateService";
+
+
+    private static final String TAG = "DTOUpdateService";
     private static final int AVERAGE_EARTH_RADIUS_IN_KM = 6371;
-    private static int upgradePeriodInMinute = 15;
-    private static int lengthOfVisibleAreaInKm = 40;
-    private static int areaToPushInKm = 3;
     private static int userId;
     private static String token;
+    private static int visibleArea;
+    private static int upgradePeriodInMinute;
+    private static int notificationArea;
+    public static boolean isPlayServicesAvailable;
+    public static AppLocation appLocation;
     private static boolean isMyMarker = false;
-    public static boolean isChange = false;
-    private static boolean isRun = false;
+    public static volatile boolean isChangeMarkerMap = false;
+    private static boolean isRunMarkerUpdateThread = false;
     private static boolean isChangeResponse = false;
     private static volatile HashMap<Integer, MarkerDTO> markerHashMap = new HashMap<Integer, MarkerDTO>();
-    private static Location myLocation;
     private static Thread markerThread, respondThread;
     private static ResponseActivity responseActivityId;
 
@@ -42,14 +45,31 @@ public class MarkerUpdateService extends Service {
     public void onCreate() {
         Log.i(TAG, "OnCreate");
         super.onCreate();
+        initPreference();
+        appLocation = AppLocation.getAppLocation(getApplicationContext(),isPlayServicesAvailable);
+    }
+
+    public void initPreference() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         token = sharedPreferences.getString("userToken", null);
         userId = sharedPreferences.getInt("userId", 0);
+        upgradePeriodInMinute = sharedPreferences
+                .getInt(DefaultPreference.MARKER_UPGRADE_PERIOD_BACKGROUND_MIN_INT.getStringValue(),
+                        DefaultPreference.MARKER_UPGRADE_PERIOD_BACKGROUND_MIN_INT.getIntValue());
+        notificationArea = sharedPreferences
+                .getInt(DefaultPreference.MARKER_NOTIFICATION_AREA_RADIUS_INT.getName(),
+                        DefaultPreference.MARKER_NOTIFICATION_AREA_RADIUS_INT.getIntValue());
+        visibleArea = sharedPreferences
+                .getInt(DefaultPreference.MARKER_VISIBLE_AREA_SIZE_KM_INT.getName(),
+                        DefaultPreference.MARKER_VISIBLE_AREA_SIZE_KM_INT.getIntValue());
+        isPlayServicesAvailable = sharedPreferences
+                .getBoolean(DefaultPreference.PLAY_SERVICES_AVAILABLE_BOOLEAN.getName(),
+                        DefaultPreference.PLAY_SERVICES_AVAILABLE_BOOLEAN.isBooleanValue());
     }
 
     @Override
     public void onDestroy() {
-        isRun = false;
+        isRunMarkerUpdateThread = false;
         try {
             markerThread.join(60 * 1000);
         } catch (InterruptedException e) {
@@ -67,7 +87,7 @@ public class MarkerUpdateService extends Service {
         } catch (NullPointerException e) {
             Log.e(TAG, "startRespondThread is 0");
         }
-        if (!isRun) {
+        if (!isRunMarkerUpdateThread) {
             Log.i(TAG, "start thread");
             markerThread = new MarkerUpdateThread();
             markerThread.start();
@@ -103,14 +123,14 @@ public class MarkerUpdateService extends Service {
     public static void addMyMarker(MarkerDTO marker) {
         markerHashMap.put(marker.userId, marker);
         isMyMarker = true;
-        isChange = true;
+        isChangeMarkerMap = true;
     }
 
     public static void delMyMarker() {
         markerHashMap.remove(userId);
         Log.i(TAG, "delMyMarker");
         isMyMarker = false;
-        isChange = true;
+        isChangeMarkerMap = true;
     }
 
     public static HashMap<Integer, MarkerDTO> getMarkerHashMap() {
@@ -118,7 +138,7 @@ public class MarkerUpdateService extends Service {
     }
 
     public static void setResponseActivityId(ResponseActivity responseActivityId) {
-        MarkerUpdateService.responseActivityId = responseActivityId;
+        DTOUpdateService.responseActivityId = responseActivityId;
     }
 
     public static void setIsChangeResponseFalse() {
@@ -138,23 +158,27 @@ public class MarkerUpdateService extends Service {
         @Override
         public void run() {
             Log.i(TAG, "MarkerUpdateThread run");
-            isRun = true;
-            while (isRun) {
-                Log.i(TAG, "MarkerUpdateThread update start" + " userId " + userId + " token " + token);
-                myLocation = new AppLocation(getBaseContext()).getMyLocation();
-                //TODO chek change geoArea
-                myLat = myLocation.getLatitude();
-                myLng = myLocation.getLongitude();
-                distance = (double) lengthOfVisibleAreaInKm / 111.111;
-                serverTreeMap = null;
-                serverTreeMap = ServerSendData.getAllMarker(token, "" + userId);
-                if (serverTreeMap != null) {
-                    deleteMarkerFromMarkerHashMap(serverTreeMap);
+            isRunMarkerUpdateThread = true;
+            Location myLocation;
+            while (isRunMarkerUpdateThread) {
 
-                    addMarkerToMarkerHashMap(serverTreeMap);
-                    isMyMarker = markerHashMap.containsKey(userId);
+                myLocation = appLocation.getMyLocation();
+                if (myLocation != null) {
+                    //TODO check change geoArea
+                    myLat = myLocation.getLatitude();
+                    myLng = myLocation.getLongitude();
+                    distance = (double) visibleArea / 111.111 / 2;
+                    serverTreeMap = null;
+                    serverTreeMap = ServerSendData.getAllMarker(token, "" + userId);
+                    if (serverTreeMap != null) {
+                        deleteMarkerFromMarkerHashMap(serverTreeMap);
+                        addMarkerToMarkerHashMap(serverTreeMap);
+                        isMyMarker = markerHashMap.containsKey(userId);
+                    }
                 }
-                Log.i(TAG, "MarkerUpdateThread update finish. IsMyMarker " + isMyMarker() + " hashMap size " + markerHashMap.size());
+                else Log.i(TAG, "Location is null");
+                Log.i(TAG, "MarkerUpdateThread update finish. IsMyMarker " + isMyMarker()
+                        + " hashMap size " + markerHashMap.size());
                 for (int i = 0; i < upgradePeriodInMinute; i++)
                     try {
                         Thread.sleep(60 * 1000);
@@ -183,8 +207,8 @@ public class MarkerUpdateService extends Service {
                         MarkerDTO mMarker = mHashMap.get(key);
                         if (isContainInVisibleArea(mMarker)) {
                             markerHashMap.put(key, mMarker);
-                            isChange = true;
-                            if (areaToPushInKm > distanceBetweenTwoPointInKm(mMarker.lat,
+                            isChangeMarkerMap = true;
+                            if (notificationArea > distanceBetweenTwoPointInKm(mMarker.lat,
                                     mMarker.lng)) ;
                             //TODO write pushMessage
                         }
@@ -203,8 +227,8 @@ public class MarkerUpdateService extends Service {
         }
 
         double distanceBetweenTwoPointInKm(double lat2, double lng2) {
-            double mRadianDistance = Math.acos(Math.sin(myLat) * Math.sin(lat2) + Math.cos(myLat) *
-                    Math.cos(lat2) * Math.cos(myLng - lng2));
+            double mRadianDistance = Math.acos(Math.sin(myLat) * Math.sin(lat2) + Math.cos(myLat)
+                    * Math.cos(lat2) * Math.cos(myLng - lng2));
             return mRadianDistance * AVERAGE_EARTH_RADIUS_IN_KM;
         }
     }
@@ -231,11 +255,12 @@ public class MarkerUpdateService extends Service {
                     }
                     serverRespondList = ServerSendData.getResponses(token, "" + userId, "" + markerId);
                     if (serverRespondList != null) {
+                        Log.i(TAG, "serverRespondList size " + serverRespondList.size() + ", lastIndex " + lastRespondsIndex);
                         int size = serverRespondList.size();
-                        if (lastRespondsIndex < size - 1) {
+                        if (lastRespondsIndex < size) {
                             isChangeResponse = true;
                             for (int m = lastRespondsIndex; m < serverRespondList.size(); m++)
-                                mDBConnector.insertResponse(serverRespondList.get(m));
+                                mDBConnector.putResponse(serverRespondList.get(m));
                             lastRespondsIndex = serverRespondList.size();
                             if (isChangeResponse && responseActivityId != null)
                                 responseActivityId.runOnUiThread(new Runnable() {
@@ -258,7 +283,7 @@ public class MarkerUpdateService extends Service {
             serverRespondList = ServerSendData.getResponses(token, "" + userId, "" + markerId);
             if (serverRespondList != null)
                 for (int m = lastRespondsIndex; m < serverRespondList.size(); m++)
-                    mDBConnector.insertResponse(serverRespondList.get(m));
+                    mDBConnector.putResponse(serverRespondList.get(m));
             serverRespondList = null;
             Log.i(TAG, "RespondThread stop");
         }

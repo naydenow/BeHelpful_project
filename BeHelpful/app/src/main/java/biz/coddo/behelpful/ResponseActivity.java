@@ -1,6 +1,8 @@
 package biz.coddo.behelpful;
 
 import android.app.DialogFragment;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,10 +13,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import java.util.ArrayList;
+
 import biz.coddo.behelpful.Adapter.ResponseActivityAdapter;
-import biz.coddo.behelpful.ServerApi.DTOUpdateService;
-import biz.coddo.behelpful.Dialogs.ResponseClickDialog;
-import biz.coddo.behelpful.Dialogs.ResponseDeleteAllDialog;
+import biz.coddo.behelpful.DTO.ResponseDTO;
+import biz.coddo.behelpful.Notification.MarkerNotification;
+import biz.coddo.behelpful.Notification.ResponseNotification;
+import biz.coddo.behelpful.dialogs.ResponseClickDialog;
+import biz.coddo.behelpful.dialogs.ResponseDeleteAllDialog;
 
 public class ResponseActivity extends AppCompatActivity {
 
@@ -24,6 +30,7 @@ public class ResponseActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager mLayoutManager;
     private DBConnector dbConnector;
     private Toolbar toolbar;
+    private static boolean responseActivityStart = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,19 +77,24 @@ public class ResponseActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        DTOUpdateService.setResponseActivityId(this);
+        responseActivityStart = true;
+        DTOUpdateService.newResponseNotifyCount = 0;
+        NotificationManager notificationManager = (NotificationManager)
+                getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(ResponseNotification.NOTIFY_ID);
         updateResponseList();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        DTOUpdateService.setResponseActivityId(null);
+        responseActivityStart = false;
     }
 
     public void deleteAllResponse() {
         dbConnector.deleteAllResponses();
-        updateResponseList();
+        mAdapter.setResponseArrayList(new ArrayList<ResponseDTO>());
+        mAdapter.notifyDataSetChanged();
     }
 
     public void deleteResponseById(int position) {
@@ -92,8 +104,11 @@ public class ResponseActivity extends AppCompatActivity {
     }
 
     public void updateResponseList() {
+        int oldLength = mAdapter.getItemCount();
         mAdapter.setResponseArrayList(dbConnector.getAllResponses());
-        mAdapter.notifyDataSetChanged();
+        int newLength = mAdapter.getItemCount();
+        for (int i = newLength - oldLength -1; i >= 0; i--)
+        mAdapter.notifyItemInserted(i);
         DTOUpdateService.setIsChangeResponseFalse();
     }
 
@@ -131,5 +146,9 @@ public class ResponseActivity extends AppCompatActivity {
                 break;
         }
         return true;
+    }
+
+    public static boolean isResponseActivityStart() {
+        return responseActivityStart;
     }
 }

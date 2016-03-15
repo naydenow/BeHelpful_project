@@ -10,11 +10,13 @@ import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
 import biz.coddo.behelpful.DTO.MarkerDTO;
+import biz.coddo.behelpful.MainActivity;
 import biz.coddo.behelpful.R;
-import biz.coddo.behelpful.ServerApi.MarkerUpdateService;
+import biz.coddo.behelpful.DTOUpdateService;
 import biz.coddo.behelpful.ServerApi.ServerAsyncTask;
 
 public class MarkerClickDialog extends DialogFragment {
@@ -25,31 +27,34 @@ public class MarkerClickDialog extends DialogFragment {
     private String token;
 
     public Dialog onCreateDialog(final Bundle savedInstanceState) {
+        Log.i(TAG, "onCreateDialog");
         Bundle mArgs = getArguments();
         int id = mArgs.getInt("id");
         userId = mArgs.getInt("userId");
         token = mArgs.getString("token");
 
-        this.marker = MarkerUpdateService.getMarkerHashMap().get(id);
+        Log.i(TAG, "For markerID " + id);
+
+        marker = DTOUpdateService.getMarkerHashMap().get(id);
 
         int title = setTitleById(marker);
 
         AlertDialog.Builder adb = new AlertDialog.Builder(getActivity());
         if (title == 0) {
             adb.setTitle(R.string.your_marker)
-                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.DELETE, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            AsyncTask<String, Void, Void> delMarker = new ServerAsyncTask.TaskDelMarker();
-                            delMarker.execute(token, "" + userId);
+                            MainActivity activity = (MainActivity) getActivity();
+                            activity.fabDeleteMark();
                         }
                     })
-                    .setNegativeButton(R.string.no, null)
+                    .setNegativeButton(R.string.CANCEL, null)
                     .setMessage(R.string.delete_marker);
 
         } else if (title == R.string.fab_menu_id5_ReadyToHelp) {
             adb.setTitle(title)
-                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.CALL, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             AsyncTask<String, Void, String> getPhone = new ServerAsyncTask.TaskGetPhone();
@@ -70,7 +75,7 @@ public class MarkerClickDialog extends DialogFragment {
                             }
                         }
                     })
-                    .setNegativeButton(R.string.no, null)
+                    .setNegativeButton(R.string.CANCEL, null)
                     .setMessage(R.string.call_user);
         } else {
             adb.setTitle(title)
@@ -78,11 +83,11 @@ public class MarkerClickDialog extends DialogFragment {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Intent intent = new Intent(Intent.ACTION_VIEW);
-                            intent.setData(Uri.parse("geo:" + marker.lat + "," + marker.lng));
+                            intent.setData(Uri.parse("google.navigation:q=" + marker.lat + "," + marker.lng));
                             startActivity(intent);
                         }
                     })
-                    .setNeutralButton(R.string.cancel, null)
+                    .setNeutralButton(R.string.CANCEL, null)
                     .setMessage(R.string.choose_action);
             if (!marker.respondOnMarker)
                 adb.setPositiveButton(R.string.response, new DialogInterface.OnClickListener() {

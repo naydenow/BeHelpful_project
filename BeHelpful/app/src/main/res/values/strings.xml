@@ -14,7 +14,7 @@
     <string name="putYouPhoneNumber">Введите Ваш номер телефона</string>
     <string name="putYourName">Введите Ваше имя</string>
     <string name="inputName">Введите имя</string>
-    <string name="confirmPhone">Подтвердите номер</string>
+    <string name="confirmPhone">Подтвердить номер</string>
     <string name="confirmPhoneText">Вам было отправлено СМС с кодом подтверждения номера телефона. Введите код и нажмите ОК.</string>
     <string name="response">ОТКЛИК</string>
     <string name="route">МАРШРУТ</string>
@@ -34,5 +34,20 @@
     <string name="dellAll">Удалить все</string>
     <string name="delete_all_response">Удалить все отклики?</string>
     <string name="CALL">ПОЗВОНИТЬ</string>
+    <string name="new_response">Новый отклик</string>
+    <string name="new_marker_nearby">Новый маркер рядом с Вами</string>
+    <string name="open_marker">Открыть метку</string>
+    <string name="go_to_application">Перейти в приложение</string>
+    <string name="register">Регистация</string>
+    <string name="shot_user_name">Не менее 3 символов</string>
+    <string name="invalid_phone">Неправильный номер</string>
+    <string name="get_other_phone">Введите другой номер</string>
+    <string name="reg_failed_try_again">Ошибка при регистрации. Попробуйте снова</string>
+    <string name="wait">Подождите…</string>
+    <string name="length_confirm_key">Должно быть 4 символа</string>
+    <string name="message_received_about_5_min">Вам было отправлено сообщение с кодом подтверждения. Сообщение придет в течение 5 минут</string>
+    <string name="confirm_code">Код подтверждения</string>
+    <string name="change_phone">Ошиблись? Введите другой номер</string>
+    <string name="registration_stop">Вы можете сделать только две попытки в течение суток. Попробуйте завтра.</string>
 
 </resources>

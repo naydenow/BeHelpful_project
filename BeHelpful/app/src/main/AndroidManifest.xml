@@ -68,7 +68,7 @@
         <activity android:name=".ResponseActivity" />
 
         <service
-            android:name=".ServerApi.DTOUpdateService"
+            android:name=".DTOUpdateService"
             android:enabled="true"
             android:exported="true" >
         </service>

@@ -14,14 +14,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
 import biz.coddo.behelpful.AppPreference.DefaultPreference;
-import biz.coddo.behelpful.ServerApi.DTOUpdateService;
-import biz.coddo.behelpful.Dialogs.GMapNotInstalledDialog;
+import biz.coddo.behelpful.dialogs.GMapNotInstalledDialog;
 
 public class StartActivity extends AppCompatActivity {
     private static final String TAG = "startActivity";
     static Fragment regFragment, regConfirmFragment;
     static String userPhone, token;
     static int userId;
+    static SharedPreferences sharedPreferences;
     static SharedPreferences.Editor editor;
 
     @Override
@@ -29,7 +29,7 @@ public class StartActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         editor = sharedPreferences.edit();
 
         // Check GooglePlayServices available
@@ -57,6 +57,7 @@ public class StartActivity extends AppCompatActivity {
             GMapNotInstalledDialog dialogGoogleMapsNotInstalled = new GMapNotInstalledDialog();
             dialogGoogleMapsNotInstalled.show(getFragmentManager(), "dialogGoogleMapsNotInstalled");
             editor.putBoolean(DefaultPreference.GMAP_INSTALLED_BOOLEAN.getName(), false);
+            //TODO change when App can works without googleMap;
             finish();
         }
 
@@ -65,17 +66,70 @@ public class StartActivity extends AppCompatActivity {
                 .getBoolean(DefaultPreference.FIRST_TIME_LOADING_BOOLEAN.getName(),
                         DefaultPreference.FIRST_TIME_LOADING_BOOLEAN.isBooleanValue());
         if (firstTimeLoadingApp) {
+            Log.i(TAG, "firstTimeLoadingApp");
+            userPhone = sharedPreferences.getString(DefaultPreference.USER_PHONE_STRING.getName(),
+                    DefaultPreference.USER_PHONE_STRING.getStringValue());
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
             regFragment = new RegFragment();
             regConfirmFragment = new RegConfirmFragment();
-            Log.i(TAG, "firstTimeLoadingApp");
-            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-            fragmentTransaction.add(R.id.activity_start_reg, regFragment);
+            if (userPhone == null) {
+                fragmentTransaction.add(R.id.activity_start_reg, regFragment);
+            } else {
+                fragmentTransaction.add(R.id.activity_start_reg, regConfirmFragment);
+            }
             fragmentTransaction.commit();
 
         } else {
             startDTOServices();
             startMainActivity();
         }
+    }
+
+    public boolean isNewPhone() {
+
+        boolean mBoolean = false;
+        String mUserPhone = sharedPreferences.getString(DefaultPreference.USER_PHONE_STRING.getName(),
+                DefaultPreference.USER_PHONE_STRING.getStringValue());
+        if (mUserPhone == null) {
+            mBoolean = true;
+            editor.putString(DefaultPreference.USER_PHONE_STRING.getName(), userPhone);
+            editor.putLong(DefaultPreference.REGISTRATION_TIME_LONG.getName(), System.currentTimeMillis());
+        } else if (!userPhone.equals(mUserPhone)) {
+            mBoolean = true;
+            editor.putBoolean(DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.getName(), true);
+        }
+        editor.commit();
+        return mBoolean;
+    }
+
+    public void regFailed(){
+        String mUserPhone = sharedPreferences.getString(DefaultPreference.USER_PHONE_STRING.getName(),
+                DefaultPreference.USER_PHONE_STRING.getStringValue());
+        if (mUserPhone != null) {
+            if (sharedPreferences.getBoolean(DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.getName(),
+                    DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.isBooleanValue())) {
+                editor.remove(DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.getName());
+            } else {
+                editor.remove(DefaultPreference.USER_PHONE_STRING.getName());
+                editor.remove(DefaultPreference.REGISTRATION_TIME_LONG.getName());
+            }
+        }
+        editor.commit();
+    }
+
+    public boolean isRegStopToday() {
+        boolean mBoolean = false;
+        if (sharedPreferences.getBoolean(DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.getName(),
+                DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.isBooleanValue())) {
+            Long time = sharedPreferences.getLong(DefaultPreference.REGISTRATION_TIME_LONG.getName(), 0);
+            if (System.currentTimeMillis() - time > 24 * 60 * 60 * 1000) {
+                editor.remove(DefaultPreference.USER_PHONE_STRING.getName());
+                editor.remove(DefaultPreference.REGISTRATION_TIME_LONG.getName());
+                editor.remove(DefaultPreference.REGISTRATION_STOP_TODAY_BOOLEAN.getName());
+            } else mBoolean = true;
+        }
+        editor.commit();
+        return mBoolean;
     }
 
     public void registrationComplete() {

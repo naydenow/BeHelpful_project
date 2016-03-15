@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import biz.coddo.behelpful.DTO.MarkerDTO;
+import biz.coddo.behelpful.DTOUpdateService;
 
 public class ServerAsyncTask {
 
@@ -29,48 +30,47 @@ public class ServerAsyncTask {
     }
 
     //params[0] - token, params[1] - userId, params[2] - markerTypeId
-    public static class TaskAddMarker extends AsyncTask<String, Void, Boolean> {
+    public static class TaskAddMarker extends AsyncTask<String, Void, Integer> {
 
         @Override
-        protected Boolean doInBackground(String... params) {
-            boolean isOk = false;
+        protected Integer doInBackground(String... params) {
             Log.i(TAG, "addMark");
             Location location = DTOUpdateService.appLocation.getMyLocation();
+            int id = 0;
             if (location != null) {
                 MarkerDTO marker = new MarkerDTO(Integer.parseInt(params[1]), 0, Integer.parseInt(params[2]),
                         location.getLatitude(), location.getLongitude());
-                int id = ServerSendData.addMark(params[0], params[1], marker);
-                Log.i(TAG, "MarkerkId" + id);
+                id = ServerSendData.addMark(params[0], params[1], marker);
+                Log.i(TAG, "MarkerId " + id);
                 if (id > 0) {
                     marker.markerId = id;
                     DTOUpdateService.addMyMarker(marker);
-                    isOk = true;
                 } else {
 
                     Log.i(TAG, "Error to add marker on server");
                 }
             }
             else Log.i(TAG, "Location is null");
-            return isOk;
-
+            return id;
         }
     }
 
     //params[0] - token, params[1] - userId
-    public static class TaskDelMarker extends AsyncTask<String, Void, Void> {
+    public static class TaskDelMarker extends AsyncTask<String, Void, Boolean> {
 
 
         @Override
-        protected Void doInBackground(String... params) {
+        protected Boolean doInBackground(String... params) {
+            Boolean mBoolean = false;
             Log.i(TAG, "DelMarker");
-            int i = DTOUpdateService.getMarkerHashMap().get(Integer.parseInt(params[1])).markerId;
-            Log.i(TAG, "DelMark userId " + params[0] + " token " + params[1] + " markerId " + i);
-            if (ServerSendData.delMark(params[0], params[1], i)) {
+            Log.i(TAG, "DelMark userId " + params[0] + " token " + params[1] + " markerId " + params[2]);
+            if (ServerSendData.delMark(params[0], params[1], params[2])) {
                 DTOUpdateService.delMyMarker();
+                mBoolean = true;
             } else {
                 Log.e(TAG, "Error to delete marker from server");
             }
-            return null;
+            return mBoolean;
         }
     }
 
@@ -87,16 +87,14 @@ public class ServerAsyncTask {
         }
     }
 
-    //params[0] - token, params[1] - userId, params[2] - responseMarkerUserId
+    //params[0] - token, params[1] - userId, params[2] - responseMarkerId
     public static class TaskSendResponse extends AsyncTask<String, Void, Boolean> {
 
         @Override
         protected Boolean doInBackground(String... params) {
-            Log.i(TAG, "GetPhone");
-            int i = Integer.parseInt(params[2]);
-            MarkerDTO marker = DTOUpdateService.getMarkerHashMap().get(i);
-            if (ServerSendData.sendResponse(params[0], params[1], "" + marker.markerId)) {
-                DTOUpdateService.setResponse(i);
+            Log.i(TAG, "SendResponse");
+            if (ServerSendData.sendResponse(params[0], params[1], "" + params[2])) {
+                DTOUpdateService.setResponse(Integer.parseInt(params[2]));
                 return true;
             } else return false;
         }

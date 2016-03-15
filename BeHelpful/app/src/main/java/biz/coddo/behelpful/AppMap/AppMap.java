@@ -1,6 +1,5 @@
 package biz.coddo.behelpful.AppMap;
 
-
 import android.content.Context;
 import android.support.v4.app.Fragment;
 
@@ -11,6 +10,7 @@ import biz.coddo.behelpful.R;
 public abstract class AppMap extends Fragment {
 
     onMarkerClickListener markerClickListener;
+    public int key = 0;
 
     public static AppMap getMap(int appMapInt){
         AppMap appMap = null;
@@ -42,6 +42,8 @@ public abstract class AppMap extends Fragment {
     public abstract void addMark(MarkerDTO marker);
 
     public abstract void addAllMarker();
+
+    public abstract void setCameraOnMarker(int key);
 
     //This interface return to MainActivity userId of clicked marker.
     //Put "markerClickListener.onMarkerClick(int Id)" at your AppMap onMarkerClick method

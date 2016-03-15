@@ -22,9 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 
 import biz.coddo.behelpful.DTO.MarkerDTO;
-import biz.coddo.behelpful.MainActivity;
 import biz.coddo.behelpful.R;
-import biz.coddo.behelpful.ServerApi.DTOUpdateService;
+import biz.coddo.behelpful.DTOUpdateService;
 
 public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
@@ -55,7 +54,9 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
         mMap.setOnMarkerClickListener(this);
         mMap.getUiSettings().setMapToolbarEnabled(false);
-        setCameraOnMyLocation();
+        if (key == 0) setCameraOnMyLocation();
+        else setCameraOnMarker(key);
+        key = 0;
         if (!DTOUpdateService.getMarkerHashMap().isEmpty() && mMap != null)
             for (MarkerDTO marker : DTOUpdateService.getMarkerHashMap().values()) {
                 addMark(marker);
@@ -69,24 +70,25 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
     }
 
     public void setCameraOnMyLocation() {
-        Location location = DTOUpdateService.appLocation.getMyLocation();
-        if (location != null) {
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            if (mMap != null) mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+        if (mMap != null) {
+            Location location = DTOUpdateService.appLocation.getMyLocation();
+            if (location != null) {
+                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+            } else Log.i(TAG, "Location is null");
         }
-        else Log.i(TAG, "Location is null");
     }
 
-    public void removeMark(int userId) {
-        if (googleMapMarkerMap.containsKey(userId)) {
-            googleMapMarkerMap.get(userId).remove();
-            googleMapMarkerMap.remove(userId);
-        } else Log.e(TAG, "GoogleMarker id = " + userId + " doesn't exist at googleMapMarkerId");
+    public void removeMark(int key) {
+        if (googleMapMarkerMap.containsKey(key)) {
+            googleMapMarkerMap.get(key).remove();
+            googleMapMarkerMap.remove(key);
+        } else Log.e(TAG, "GoogleMarker id = " + key + " doesn't exist at googleMapMarkerId");
     }
 
     public void addMark(MarkerDTO marker) {
         Log.i(TAG, "addMark");
-        int key = marker.userId;
+        int key = marker.markerId;
         if (!googleMapMarkerMap.containsKey(key)) {
             Marker mMarker = mMap.addMarker(new MarkerOptions()
                     .position(new LatLng(marker.lat, marker.lng))
@@ -94,7 +96,7 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
                     .icon(BitmapDescriptorFactory.fromResource(setIconByID(marker.markerType)))
                     .snippet("" + key)
                     .visible(true));
-            googleMapMarkerMap.put(marker.userId, mMarker);
+            googleMapMarkerMap.put(marker.markerId, mMarker);
         } else googleMapMarkerMap.get(key).setVisible(true);
     }
 
@@ -114,6 +116,14 @@ public class AppMapGoogleMap extends AppMap implements OnMapReadyCallback, Googl
             }
             for (MarkerDTO marker : DTOUpdateService.getMarkerHashMap().values())
                 addMark(marker);
+        }
+    }
+
+    @Override
+    public void setCameraOnMarker(int key) {
+        if (mMap != null) {
+            MarkerDTO marker = DTOUpdateService.getMarkerHashMap().get(key);
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(marker.lat, marker.lng), 16));
         }
     }
 

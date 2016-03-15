@@ -14,6 +14,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -29,7 +30,7 @@ public class ServerSendData {
 
         boolean mSendRegData = false;
         try {
-            URL url = new URL(SERVER + "login/login?phone=" + phone + "&name=" + name);
+            URL url = new URL(SERVER + "login/login?phone=" + phone + "&name=" + URLEncoder.encode(name, "UTF-8"));
 
             URLConnection connection = url.openConnection();
             HttpURLConnection httpConnection = (HttpURLConnection) connection;
@@ -78,6 +79,7 @@ public class ServerSendData {
                 InputStream in = httpConnection.getInputStream();
                 BufferedReader r = new BufferedReader(new InputStreamReader(in));
                 String aString = r.readLine();
+                Log.i(TAG, "json " + aString);
                 JSONObject object;
                 try {
                     object = new JSONObject(aString);
@@ -127,7 +129,7 @@ public class ServerSendData {
                             Double lat = jObject.getDouble("lat");
                             Double lng = jObject.getDouble("lon");
                             MarkerDTO marker = new MarkerDTO(userID, markerID, typeID, lat, lng);
-                            markerMap.put(userID, marker);
+                            markerMap.put(markerID, marker);
                         }
                     }
                 } catch (JSONException e) {
@@ -150,7 +152,7 @@ public class ServerSendData {
         int MarkerID = 0;
         try {
             URL url = new URL(SERVER + "marker/add?token=" + token + "&userid=" + id + "&typeid="
-                    + markerDTO.markerType + "&lat=" + markerDTO.lat + "&lon=" + markerDTO.lng);
+                    + markerDTO.markerType + "&lat=" + markerDTO.lat + "&lon=" + markerDTO.lng + "&text=");
             URLConnection connection = url.openConnection();
             HttpURLConnection httpConnection = (HttpURLConnection) connection;
 
@@ -179,7 +181,7 @@ public class ServerSendData {
         return MarkerID;
     }
 
-    public static boolean delMark(String token, String id, int markerId){
+    public static boolean delMark(String token, String id, String markerId){
         boolean isDel = false;
         try {
             URL url = new URL(SERVER + "marker/remove?token=" + token + "&userid=" + id

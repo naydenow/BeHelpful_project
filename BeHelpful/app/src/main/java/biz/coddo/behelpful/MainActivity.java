@@ -1,6 +1,8 @@
 package biz.coddo.behelpful;
 
 import android.app.DialogFragment;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -21,9 +23,10 @@ import java.util.concurrent.ExecutionException;
 
 import biz.coddo.behelpful.AppMap.AppMap;
 import biz.coddo.behelpful.AppPreference.DefaultPreference;
-import biz.coddo.behelpful.ServerApi.DTOUpdateService;
+import biz.coddo.behelpful.Notification.MarkerNotification;
 import biz.coddo.behelpful.ServerApi.ServerAsyncTask;
-import biz.coddo.behelpful.Dialogs.MarkerClickDialog;
+import biz.coddo.behelpful.dialogs.AppProgressDialog;
+import biz.coddo.behelpful.dialogs.MarkerClickDialog;
 
 public class MainActivity extends AppCompatActivity implements AppMap.onMarkerClickListener {
 
@@ -36,25 +39,24 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
     private Animation rotate_forward, rotate_backward;
     private boolean isOpenFabMenu = false;
     private boolean isAddFab = true;
-    private FloatingActionButton fab;
-    private FloatingActionButton myLocButton;
+    private FloatingActionButton fab, myLocButton;
     private ChangeListener changeListener;
     private Toolbar toolbar;
+    private static boolean isMainActivityStart = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i(TAG, "onCreate");
         setContentView(R.layout.activity_main);
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-
         token = sharedPreferences.getString(DefaultPreference.USER_TOKEN_STRING.getName(),
                 DefaultPreference.USER_TOKEN_STRING.getStringValue());
         Log.i(TAG, token);
         userId = sharedPreferences.getInt(DefaultPreference.USER_ID_INT.getName(),
                 DefaultPreference.USER_ID_INT.getIntValue());
         Log.i(TAG, "" + userId);
-
 
         initToolbar();
 
@@ -74,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
             }
         });
 
+        checkStartIntentParam();
     }
 
     @Override
@@ -83,17 +86,20 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
                 DefaultPreference.MARKER_UPGRADE_PERIOD_ONPAUSE_MIN_INT.getIntValue());
         DTOUpdateService.setUpgradePeriod(i);
         changeListener.stopSelf();
+        isMainActivityStart = false;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        setNewResponseIcon();
+        isMainActivityStart = true;
+        DTOUpdateService.newMarkerNotifyCount = 0;
         int i = sharedPreferences.getInt(DefaultPreference.MARKER_UPGRADE_PERIOD_ONRESUME_MIN_INT.getName(),
                 DefaultPreference.MARKER_UPGRADE_PERIOD_ONRESUME_MIN_INT.getIntValue());
         DTOUpdateService.setUpgradePeriod(i);
         changeListener = new ChangeListener(this);
         changeListener.start();
-
     }
 
     @Override
@@ -129,43 +135,59 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
 
     }
 
-    private void setFabListener(){
-        if (DTOUpdateService.isMyMarker()) {
+    private void setFabListener() {
+        if (DTOUpdateService.isMyMarker() || DTOUpdateService.getMyMarkerID() > 0) {
             Log.i(TAG, "isMyMarker true");
             if (isAddFab) fab.startAnimation(rotate_forward);
-            fab.setOnClickListener(fabDeleteMark());
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    fabDeleteMark();
+                }
+            });
             isAddFab = false;
         } else {
-            fab.setOnClickListener(fabAddMark());
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    fabAddMark();
+                }
+            });
             if (!isAddFab) fab.startAnimation(rotate_backward);
         }
     }
 
-    private View.OnClickListener fabDeleteMark() {
-        return new View.OnClickListener() {
+    public void fabDeleteMark() {
 
-            @Override
-            public void onClick(View v) {
-                fab.startAnimation(rotate_backward);
-                AsyncTask<String, Void, Void> delMarker = new ServerAsyncTask.TaskDelMarker();
-                delMarker.execute(token, "" + userId);
-            }
-        };
+        fab.setClickable(false);
+        AppProgressDialog progressDialog = new AppProgressDialog(this);
+        fab.startAnimation(rotate_backward);
+        AsyncTask<String, Void, Boolean> delMarker = new ServerAsyncTask.TaskDelMarker();
+        delMarker.execute(token, "" + userId, "" + DTOUpdateService.getMyMarkerID());
+        try {
+            delMarker.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            progressDialog.cancel();
+            fab.setClickable(true);
+        }
     }
 
-    private View.OnClickListener fabAddMark() {
-        return new View.OnClickListener() {
+    private void fabAddMark() {
+
+        fab.setClickable(false);
+        openFabMenu();
+        fabMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                openFabMenu();
-                fabMenu.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        closeFabMenu();
-                    }
-                });
+                closeFabMenu();
+                initFab();
             }
-        };
+        });
+
     }
 
     private void initFabMenu() {
@@ -173,7 +195,6 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
         View.OnClickListener fabMenuButtonsOnClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AsyncTask<String, Void, Boolean> addMarker = new ServerAsyncTask.TaskAddMarker();
                 String i = "1";
                 switch (view.getId()) {
                     case R.id.addMarkId1:
@@ -192,23 +213,7 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
                         i = "5";
                         break;
                 }
-                addMarker.execute(token, "" + userId, i);
-                fab.startAnimation(rotate_forward);
-                isAddFab = false;
-                fab.setOnClickListener(fabDeleteMark());
-                closeFabMenu();
-                try {
-                    Log.i(TAG, "AddMarker get" + addMarker.get());
-                    if (addMarker.get()) {
-                        Intent intent = new Intent(MainActivity.this, DTOUpdateService.class);
-                        intent.putExtra("respondThread", 1);
-                        startService(intent);
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
+                fabMenuAddMark(i);
             }
         };
         FloatingActionButton addMarkId1 = (FloatingActionButton) findViewById(R.id.addMarkId1);
@@ -223,23 +228,69 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
         addMarkId5.setOnClickListener(fabMenuButtonsOnClickListener);
     }
 
+    private void fabMenuAddMark(String i) {
+
+        AppProgressDialog progressDialog = new AppProgressDialog(this);
+        AsyncTask<String, Void, Integer> addMarker = new ServerAsyncTask.TaskAddMarker();
+        addMarker.execute(token, "" + userId, i);
+
+        try {
+            int myMarkerID = addMarker.get();
+            Log.i(TAG, "AddMarker get " + myMarkerID);
+            if (myMarkerID > 0) {
+                Intent intent = new Intent(MainActivity.this, DTOUpdateService.class);
+                intent.putExtra("respondThread", 1);
+                DTOUpdateService.setMyMarkerID(myMarkerID);
+                startService(intent);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putInt(DefaultPreference.MY_MARKER_ID_INT.getName(), myMarkerID);
+                editor.commit();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            progressDialog.cancel();
+            closeFabMenu();
+            setFabListener();
+        }
+    }
+
     private void closeFabMenu() {
+
         isOpenFabMenu = false;
         fabMenu.setVisibility(View.INVISIBLE);
         myLocButton.setVisibility(View.VISIBLE);
         fab.setVisibility(View.VISIBLE);
+        fab.setClickable(true);
     }
 
     private void openFabMenu() {
+
         isOpenFabMenu = true;
         fabMenu.setVisibility(View.VISIBLE);
         myLocButton.setVisibility(View.INVISIBLE);
         fab.setVisibility(View.INVISIBLE);
     }
 
+    private void checkStartIntentParam() {
+        int markerID = getIntent().getIntExtra("MarkerID", 0);
+        Log.i(TAG, "MarkerID" + markerID);
+        if (markerID > 0) {
+            onMarkerClick(markerID);
+            appMap.key = markerID;
+        } else {
+            NotificationManager notificationManager = (NotificationManager)
+                    getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.cancel(MarkerNotification.NOTIFY_ID);
+        }
+        getIntent().removeExtra("MarkerID");
+    }
+
     @Override
     public void onMarkerClick(int id) {
-        Log.i(TAG, "onMarkerClick");
+        Log.i(TAG, "onMarkerClick markerID " + id);
         Bundle args = new Bundle();
         args.putInt("id", id);
         args.putInt("userId", userId);
@@ -270,11 +321,18 @@ public class MainActivity extends AppCompatActivity implements AppMap.onMarkerCl
                 return true;
             }
         });
-        if(DTOUpdateService.isChangeResponse()) setNewResponseIcon();
+        if (DTOUpdateService.isChangeResponse()) setNewResponseIcon();
     }
 
     private void setNewResponseIcon() {
-        toolbar.getMenu().findItem(R.id.menu_responses).setIcon(R.mipmap.ic_email_outline);
+        if (DTOUpdateService.isChangeResponse())
+            toolbar.getMenu().findItem(R.id.menu_responses).setIcon(R.mipmap.ic_email_outline);
+        else
+            toolbar.getMenu().findItem(R.id.menu_responses).setIcon(R.mipmap.ic_email_open_outline);
+    }
+
+    public static boolean isIsMainActivityStart() {
+        return isMainActivityStart;
     }
 
     class ChangeListener extends Thread {
